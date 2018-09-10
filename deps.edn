@@ -1,0 +1,22 @@
+{:paths ["src" "resources"]
+
+ ;; TODO: figure out how to configure logging
+ ;; When this package is added, no logging statements appear in
+ ;; console by default (compojure-api integration)
+ :deps
+ {org.clojure/clojure {:mvn/version "1.9.0"}
+  metosin/compojure-api {:mvn/version "2.0.0-alpha21"
+                         :exclusions [potemkin instaparse]}
+  metosin/spec-tools {:mvn/version "0.7.1"}
+  metosin/muuntaja {:mvn/version "0.6.0-alpha4"}
+  ring/ring-codec {:mvn/version "1.1.0"}
+  ring/ring-core {:mvn/version "1.6.3"}
+  ring/ring-defaults {:mvn/version "0.3.1"}
+  ring/ring-jetty-adapter {:mvn/version "1.6.3"}}
+
+  :aliases {:dev
+            {:extra-deps
+             {ring/ring-devel {:mvn/version "1.6.3"}}}}}
+
+
+

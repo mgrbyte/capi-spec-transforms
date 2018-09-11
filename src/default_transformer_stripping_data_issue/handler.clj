@@ -7,8 +7,10 @@
    [spec-tools.core :as stc]
    [spec-tools.transform :as stt]))
 
+(s/def :s/kw keyword?)
+
 (s/def :g/bt string?)
-(s/def :g/sp string?)
+(s/def :g/sp :s/kw)
 (s/def :g/sn string?)
 (s/def :g/cn string?)
 (s/def :p/when string?)

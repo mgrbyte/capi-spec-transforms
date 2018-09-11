@@ -1,9 +1,11 @@
 (ns default-transformer-stripping-data-issue.handler
   (:require
    [clojure.spec.alpha :as s]
-   [compojure.api.sweet :refer :all]
-   [ring.util.http-response :refer :all]
-   [spec-tools.core :as stc]))
+   [compojure.api.coercion.spec :as spec-coercion]
+   [compojure.api.sweet :refer [api context resource routes]]
+   [ring.util.http-response :refer [bad-request]]
+   [spec-tools.core :as stc]
+   [spec-tools.transform :as stt]))
 
 (s/def :g/bt string?)
 (s/def :g/sp string?)
@@ -52,6 +54,33 @@
 
 (s/def ::update (stc/spec (s/or ::variant-a ::variant-b)))
 
+;;; hacks to workaround stripping spec-data stripping behaviour in compojure.api
+(def string-transformer
+  (stc/type-transformer
+    {:name :string
+     :decoders stt/string-type-decoders
+     :encoders stt/string-type-encoders
+     :default-encoder stt/any->any}))
+
+(def json-transformer
+  (stc/type-transformer
+    {:name :json
+     :decoders stt/json-type-decoders
+     :encoders stt/json-type-encoders
+     :default-encoder stt/any->any}))
+
+(defn non-stripping-spec-keys-coercion []
+  (let [mimetypes (-> spec-coercion/default-options :body keys)
+        options (-> spec-coercion/default-options
+                    (assoc-in
+                     [:body :formats]
+                     (zipmap mimetypes (repeat json-transformer)))
+                    (assoc-in [:body :string :default] string-transformer))]
+    (spec-coercion/create-coercion options)))
+
+(defn expect-request-validation-to-fail [request]
+  (bad-request "Expecting request validation to fail"))
+
 (def app
   (api
     {:swagger
@@ -61,15 +90,20 @@
                     :description "Compojure Api example"}
              :tags [{:name "api", :description "some apis"}]}}}
     (routes
+     (context "/solution-1" []
+       :coercion (non-stripping-spec-keys-coercion)
+       (resource
+        {:post
+         {:x-name ::update-data-custom-coercion-fix
+          :parameters {:body-params ::update}
+          :handler expect-request-validation-to-fail}}))
      (context "/issue" []
        :coercion :spec
        (resource
         {:post
-         {:x-name ::update-data
+         {:x-name ::update-data-failing
           :parameters {:body-params ::update}
-          :handler (fn [request]
-                     (println "****** DATA FROM request:")
-                     (prn (:body-params request))
-                     (ok "Expecting error"))}})))))
+          :handler expect-request-validation-to-fail}})))))
+
 
 

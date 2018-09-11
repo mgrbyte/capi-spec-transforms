@@ -11,5 +11,9 @@
   :source-paths ["src"]
   :middleware [lein-tools-deps.plugin/resolve-dependencies-with-deps-edn]
   :profiles
-   {:lein-tools-deps/config {:resolve-aliases [:dev]}})
+  {:dev
+   {:lein-tools-deps/config {:resolve-aliases [:dev]}
+    :plugins
+    [[refactor-nrepl "2.4.0"]
+     [cider/cider-nrepl "0.18.0"]]}})
 

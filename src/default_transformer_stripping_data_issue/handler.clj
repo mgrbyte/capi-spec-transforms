@@ -5,9 +5,10 @@
    [compojure.api.sweet :refer [api context resource routes]]
    [ring.util.http-response :refer [bad-request]]
    [spec-tools.core :as stc]
+   [spec-tools.spec :as spec]
    [spec-tools.transform :as stt]))
 
-(s/def :s/kw keyword?)
+(s/def :s/kw spec/keyword?)
 
 (s/def :g/bt string?)
 (s/def :g/sp :s/kw)

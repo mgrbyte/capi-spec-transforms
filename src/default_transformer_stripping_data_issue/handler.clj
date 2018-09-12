@@ -3,15 +3,12 @@
    [clojure.spec.alpha :as s]
    [compojure.api.coercion.spec :as spec-coercion]
    [compojure.api.sweet :refer [api context resource routes]]
-   [ring.util.http-response :refer [bad-request]]
+   [ring.util.http-response :refer [bad-request ok]]
    [spec-tools.core :as stc]
    [spec-tools.spec :as spec]
    [spec-tools.transform :as stt]))
 
-(s/def :s/kw spec/keyword?)
-
-(s/def :g/bt string?)
-(s/def :g/sp :s/kw)
+(s/def :g/sp spec/keyword?)
 (s/def :g/sn string?)
 (s/def :g/cn string?)
 (s/def :p/when string?)
@@ -24,16 +21,14 @@
                      (s/keys :req [:g/sn
                                    :g/bt
                                    :g/sp]
-                             :opt [:g/cn
-                                   :p/when
+                             :opt [:p/when
                                    :p/who
                                    :p/how
                                    :p/why])
                      (s/map-of
-                      #{:g/bt
-                        :g/sn
+                      #{:g/sn
+                        :g/bt
                         :g/sp
-                        :g/cn
                         :p/when
                         :p/who
                         :p/how
@@ -47,15 +42,15 @@
                                    :p/how
                                    :p/why
                                    :p/when])
-                     (s/map-of #{:g/sp
-                                 :g/cn
-                                 :p/when
+                     (s/map-of #{:p/when
                                  :p/who
                                  :p/how
                                  :p/why}
                                (comp not nil?)))))
 
-(s/def ::update (stc/spec (s/or ::variant-a ::variant-b)))
+(s/def ::kw-test (stc/spec (s/keys :req [:g/sp])))
+
+(s/def ::update (stc/spec (s/or :v-a ::variant-a :v-b ::variant-b)))
 
 ;;; hacks to workaround stripping spec-data stripping behaviour in compojure.api
 (def string-transformer
@@ -68,7 +63,8 @@
 (def json-transformer
   (stc/type-transformer
     {:name :json
-     :decoders stt/json-type-decoders
+     :Decoders
+     stt/json-type-decoders
      :encoders stt/json-type-encoders
      :default-encoder stt/any->any}))
 
@@ -82,7 +78,15 @@
     (spec-coercion/create-coercion options)))
 
 (defn expect-request-validation-to-fail [request]
+  (println "BODY  PARAMS:")
+  (prn (get request :body-params))
   (bad-request "Expecting request validation to fail"))
+
+(defn keyword-coercion [request]
+  (ok {:message "Keywords coerced in body-params ok"
+       :data (:body-params request)}))
+
+(def custom-coercion (non-stripping-spec-keys-coercion))
 
 (def app
   (api
@@ -93,6 +97,21 @@
                     :description "Compojure Api example"}
              :tags [{:name "api", :description "some apis"}]}}}
     (routes
+     (context "/kw-test-custom-spec-coercion" []
+       :coercion custom-coercion
+       ;; :coercion :spec
+       (resource
+        {:post
+         {:x-name ::kw-test-custom-spec-coercion
+          :parameters {:body-params ::kw-test}
+          :handler keyword-coercion}}))
+     (context "/kw-test-default-spec-coercion" []
+       :coercion :spec
+       (resource
+        {:post
+         {:x-name ::kw-test-default-spec-coercion
+          :parameters {:body-params ::kw-test}
+          :handler keyword-coercion}}))     
      (context "/solution-1" []
        :coercion (non-stripping-spec-keys-coercion)
        (resource
